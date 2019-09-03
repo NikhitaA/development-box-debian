@@ -3,29 +3,29 @@
 
 VAGRANTFILE_API_VERSION = "2"
 
-unless Vagrant.has_plugin?("vagrant-cachier")
-  puts "Install vagrant-cachier"
-  exec 'vagrant plugin install vagrant-cachier && vagrant up'
-end
-
-unless Vagrant.has_plugin?("vagrant-vbguest")
-  puts "Install vagrant-vbguest"
-  exec 'vagrant plugin install vagrant-vbguest && vagrant up'
-end
-
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "bento/debian-9"
+  config.vm.define 'default', primary: true do |default|
+    default.vm.box = "bento/debian-9"
 
-  config.vm.hostname = "development-box-debian"
+    default.vm.hostname = "development-box-debian"
+    default.vm.network :private_network, ip: '10.3.1.3'
 
-  config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "playbook.yml"
+    default.cache.scope = :machine
+
+    default.vm.provider :virtualbox do |vb|
+      vb.memory = 2048
+      vb.cpus = 2
+    end
   end
 
-  config.cache.scope = :machine
+  config.vm.define 'provisioner' do |provisioner|
+    provisioner.vm.box = "bento/debian-9"
 
-  config.vm.provider :virtualbox do |vb|
-    vb.memory = 2048
-    vb.cpus = 2
+    provisioner.vm.hostname = "provisioner"
+    provisioner.vm.network :private_network, ip: '10.3.1.2'
+
+    provisioner.vm.provision "shell", path: "bash/provisioner.sh"
+
+    provisioner.cache.scope = :machine
   end
 end
